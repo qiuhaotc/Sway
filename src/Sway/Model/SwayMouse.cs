@@ -21,7 +21,7 @@ namespace Sway
             {
                 autoStart = value;
 
-                var appPath = Assembly.GetExecutingAssembly().Location.Replace("dll", "exe");
+                var appPath = Assembly.GetExecutingAssembly().Location;
                 var path = Path.Combine(new FileInfo(appPath).DirectoryName, "AutoStart.exe");
 
                 try
