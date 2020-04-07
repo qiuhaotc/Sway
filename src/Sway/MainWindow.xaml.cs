@@ -23,6 +23,8 @@ namespace Sway
         public MainWindow()
         {
             InitializeComponent();
+
+            DataContext = new SwayMouse();
         }
     }
 }
