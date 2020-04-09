@@ -5,8 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Sway"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="600">
+        Title="Sway" Height="200.474" Width="311.019" ResizeMode="NoResize">
     <Grid>
-        <CheckBox Content="Auto Start" IsChecked="{Binding AutoStart}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+        <CheckBox Content="Auto Start" IsChecked="{Binding AutoStart}" Margin="10,77,200.8,65.2" VerticalContentAlignment="Center" />
+        <Button Content="{Binding RunningStatus}" Command="{Binding StartStopCommand}" HorizontalAlignment="Left" Margin="14,122,0,0" VerticalAlignment="Top" Width="94" Height="35" RenderTransformOrigin="0.461,1.514" />
+        <Label Content="Move the mouse after seconds:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" />
+        <TextBox HorizontalAlignment="Left" Height="23" Margin="205,10,0,0" TextWrapping="Wrap" Text="{Binding RunAfterSeconds, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="60" />
+        <Label Content="Mouse sway length:" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" />
+        <TextBox HorizontalAlignment="Left" Height="23" Margin="205,41,0,0" TextWrapping="Wrap" Text="{Binding SwayLength, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="60" />
+        <CheckBox Content="Run when windows locked" IsChecked="{Binding RunWhenWindowsLocked}" Margin="104,77,-0.2,65.2" VerticalContentAlignment="Center" />
+        <Button Content="Exit" Click="Button_Click" HorizontalAlignment="Left" Margin="198,122,0,0" VerticalAlignment="Top" Width="92" Height="35" RenderTransformOrigin="0.451,-0.435" />
     </Grid>
 </Window>

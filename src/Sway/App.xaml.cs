@@ -13,5 +13,19 @@ namespace Sway
     /// </summary>
     public partial class App : Application
     {
+        void Application_Startup(object sender, StartupEventArgs e)
+        {
+            // TODO: Hide When Auto Start
+            foreach (string s in e.Args)
+            {
+                if (s == "autostart")
+                {
+                    IsAutoStart = true;
+                    break;
+                }
+            }
+        }
+
+        internal static bool IsAutoStart;
     }
 }
