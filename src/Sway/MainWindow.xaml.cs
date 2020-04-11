@@ -18,7 +18,11 @@ namespace Sway
         {
             InitializeComponent();
             InitWindow();
-            Hide();
+
+            if (App.IsAutoStart)
+            {
+                Hide();
+            }
         }
 
         private void InitWindow()
@@ -26,7 +30,7 @@ namespace Sway
             DataContext = new SwayMouse();
 
             NotifyIcon = new NotifyIcon();
-            NotifyIcon.Text = "Protect Eyes";
+            NotifyIcon.Text = "Sway";
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
                 NotifyIcon.Icon = Properties.Resources.Icon;

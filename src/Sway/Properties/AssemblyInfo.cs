@@ -8,7 +8,7 @@ using System.Windows;
 [assembly: AssemblyTitle("Sway")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("qiuhaotc")]
 [assembly: AssemblyProduct("Sway")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]

@@ -91,7 +91,7 @@ namespace Sway
 
                 try
                 {
-                    using (var process = Process.Start(new ProcessStartInfo(path, $"{value} Sway {appPath}")
+                    using (var process = Process.Start(new ProcessStartInfo(path, $"{value} Sway \"{appPath} {App.AutoStart}\"")
                     {
                         Verb = "runas"
                     }))
