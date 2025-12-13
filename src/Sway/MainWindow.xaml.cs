@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Forms;
 
@@ -9,6 +10,7 @@ namespace Sway
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public partial class MainWindow : Window
     {
         public NotifyIcon NotifyIcon { get; private set; }

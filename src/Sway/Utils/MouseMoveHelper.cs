@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Windows;
 
 namespace Sway
 {
+    [SupportedOSPlatform("windows")]
     public static class MouseMoveHelper
     {
         [DllImport("user32")]

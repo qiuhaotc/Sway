@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Configuration;
-using System.Diagnostics;
-using System.IO;
 using System.Reflection;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -10,8 +9,12 @@ using Microsoft.Win32;
 
 namespace Sway
 {
+    [SupportedOSPlatform("windows")]
     public class SwayMouse : BaseViewModel, IDisposable
     {
+        const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+        const string RunValueName = "Sway";
+
         public SwayMouse()
         {
             autoStart = bool.Parse(ConfigurationManager.AppSettings["AutoStart"]);
@@ -19,6 +22,11 @@ namespace Sway
             runAfterSeconds = int.Parse(ConfigurationManager.AppSettings["RunAfterSeconds"]);
             swayLength = int.Parse(ConfigurationManager.AppSettings["SwayLength"]);
             IsRunning = autoStart;
+
+            if (autoStart)
+            {
+                TrySetAutoRun(true);
+            }
 
             RunOrStopRunning();
 
@@ -86,17 +94,10 @@ namespace Sway
             get => autoStart;
             set
             {
-                var appPath = Assembly.GetExecutingAssembly().Location;
-                var path = Path.Combine(new FileInfo(appPath).DirectoryName, "AutoStart.exe");
-
                 try
                 {
-                    using (var process = Process.Start(new ProcessStartInfo(path, $"{value} Sway \"{appPath} {App.AutoStart}\"")
+                    if (TrySetAutoRun(value))
                     {
-                        Verb = "runas"
-                    }))
-                    {
-                        process?.WaitForExit();
                         autoStart = value;
                         SetConfigValue("AutoStart", autoStart.ToString());
                     }
@@ -104,6 +105,37 @@ namespace Sway
                 catch
                 {
                 }
+            }
+        }
+
+        static bool TrySetAutoRun(bool enabled)
+        {
+            try
+            {
+                using (var key = Registry.CurrentUser.CreateSubKey(RunKeyPath))
+                {
+                    if (key == null)
+                    {
+                        return false;
+                    }
+
+                    if (enabled)
+                    {
+                        var exePath = Assembly.GetExecutingAssembly().Location;
+                        var command = $"\"{exePath}\" {App.AutoStart}";
+                        key.SetValue(RunValueName, command, RegistryValueKind.String);
+                    }
+                    else
+                    {
+                        key.DeleteValue(RunValueName, false);
+                    }
+
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
             }
         }
 

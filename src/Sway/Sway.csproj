@@ -11,10 +11,5 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="AutoStart.exe" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
