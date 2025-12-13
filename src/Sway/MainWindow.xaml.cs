@@ -12,7 +12,7 @@ namespace Sway
     public partial class MainWindow : Window
     {
         public NotifyIcon NotifyIcon { get; private set; }
-        public MenuItem[] AreaMenuItems { get; private set; }
+        public ToolStripMenuItem[] AreaMenuItems { get; private set; }
 
         public MainWindow()
         {
@@ -53,14 +53,14 @@ namespace Sway
 
             AreaMenuItems = new[]
             {
-                new MenuItem("Close", (sender, e)=>{
-                    ExitApp();
-                })
+                new ToolStripMenuItem("Close", null, (sender, e) => ExitApp())
             };
 
             if (AreaMenuItems != null && AreaMenuItems.Length > 0)
             {
-                NotifyIcon.ContextMenu = new ContextMenu(AreaMenuItems.ToArray());
+                var menu = new ContextMenuStrip();
+                menu.Items.AddRange(AreaMenuItems);
+                NotifyIcon.ContextMenuStrip = menu;
             }
 
             Closing += MainWindow_Closing;
