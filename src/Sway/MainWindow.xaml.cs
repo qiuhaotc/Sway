@@ -1,20 +1,16 @@
-﻿using System;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Forms;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Sway
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     [SupportedOSPlatform("windows")]
     public partial class MainWindow : Window
     {
-        public NotifyIcon NotifyIcon { get; private set; }
-        public ToolStripMenuItem[] AreaMenuItems { get; private set; }
+        private NotifyIcon? NotifyIcon { get; set; }
+        private ToolStripMenuItem[]? AreaMenuItems { get; set; }
 
         public MainWindow()
         {
@@ -29,7 +25,7 @@ namespace Sway
 
         private void InitWindow()
         {
-            DataContext = new SwayMouse();
+            DataContext = App.Services.GetRequiredService<SwayMouse>();
 
             NotifyIcon = new NotifyIcon();
             NotifyIcon.Text = "Sway";
@@ -70,11 +66,12 @@ namespace Sway
 
         void ExitApp()
         {
-            NotifyIcon.Dispose();
+            ((SwayMouse)DataContext).Dispose();
+            NotifyIcon?.Dispose();
             Environment.Exit(0);
         }
 
-        void MainWindow_Closing(object sender, CancelEventArgs e)
+        void MainWindow_Closing(object? sender, CancelEventArgs e)
         {
             Hide();
             e.Cancel = true;

@@ -1,12 +1,12 @@
-﻿using System;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Windows;
+using Point = System.Windows.Point;
 
 namespace Sway
 {
     [SupportedOSPlatform("windows")]
-    public static class MouseMoveHelper
+    public class MouseMoveHelper : IMouseService
     {
         [DllImport("user32")]
         private static extern int mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
@@ -21,33 +21,27 @@ namespace Sway
         const int MOUSEEVENTF_ABSOLUTE = 0x8000;
         const int MOUSEEVENTF_WHEEL = 0x0800;
 
-        public static void MoveMouse(int x, int y)
+        public void MoveMouse(int x, int y)
         {
             mouse_event(MOUSEEVENTF_MOVE, x, y, 0, 0);
         }
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool GetCursorPos(ref Win32Point pt);
+        private static extern bool GetCursorPos(ref Win32Point pt);
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct Win32Point
+        private struct Win32Point
         {
             public Int32 X;
             public Int32 Y;
-        };
+        }
 
-        public static Point GetMousePosition()
+        public Point GetMousePosition()
         {
             Win32Point w32Mouse = new Win32Point();
             GetCursorPos(ref w32Mouse);
             return new Point(w32Mouse.X, w32Mouse.Y);
         }
-
-        // Windows API : GetForegroundWindow
-        // 取得正在使用视窗[前景]的控制代码
-        //
-        [DllImport("user32.dll")]
-        public static extern IntPtr GetForegroundWindow();
     }
 }

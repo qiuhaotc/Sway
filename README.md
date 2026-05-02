@@ -2,6 +2,8 @@
 
 Sway your mouse
 
+[![CI](https://github.com/qiuhaotc/Sway/actions/workflows/ci.yml/badge.svg)](https://github.com/qiuhaotc/Sway/actions/workflows/ci.yml)
+
 When marimba rhythms start to play
 
 Dance with me make me sway

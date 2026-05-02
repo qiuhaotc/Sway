@@ -1,10 +1,6 @@
-﻿using System;
-using System.Configuration;
-using System.Reflection;
 using System.Runtime.Versioning;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Input;
+using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 
 namespace Sway
@@ -12,20 +8,31 @@ namespace Sway
     [SupportedOSPlatform("windows")]
     public class SwayMouse : BaseViewModel, IDisposable
     {
-        const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-        const string RunValueName = "Sway";
+        readonly SettingsService _settingsService;
+        readonly IRegistryService _registryService;
+        readonly ILogger<SwayMouse> _logger;
+        readonly IMouseService _mouseService;
 
-        public SwayMouse()
+        public SwayMouse(SettingsService settingsService, IRegistryService registryService, ILogger<SwayMouse> logger, IMouseService mouseService)
         {
-            autoStart = bool.Parse(ConfigurationManager.AppSettings["AutoStart"]);
-            runWhenWindowsLocked = bool.Parse(ConfigurationManager.AppSettings["RunWhenWindowsLocked"]);
-            runAfterSeconds = int.Parse(ConfigurationManager.AppSettings["RunAfterSeconds"]);
-            swayLength = int.Parse(ConfigurationManager.AppSettings["SwayLength"]);
+            _settingsService = settingsService;
+            _registryService = registryService;
+            _logger = logger;
+            _mouseService = mouseService;
+
+            var settings = settingsService.Current;
+            autoStart = settings.AutoStart;
+            runWhenWindowsLocked = settings.RunWhenWindowsLocked;
+            runAfterSeconds = settings.RunAfterSeconds;
+            swayLength = settings.SwayLength;
             IsRunning = autoStart;
+
+            _logger.LogDebug("SwayMouse initialized: AutoStart={AutoStart}, RunAfterSeconds={RunAfterSeconds}, SwayLength={SwayLength}",
+                autoStart, runAfterSeconds, swayLength);
 
             if (autoStart)
             {
-                TrySetAutoRun(true);
+                _registryService.TrySetAutoRun(true);
             }
 
             RunOrStopRunning();
@@ -43,6 +50,7 @@ namespace Sway
             private set
             {
                 isRunning = value;
+                NotifyPropertyChange(nameof(IsRunning));
                 NotifyPropertyChange(nameof(RunningStatus));
             }
         }
@@ -60,7 +68,7 @@ namespace Sway
                 }
 
                 runAfterSeconds = value;
-                SetConfigValue("RunAfterSeconds", value.ToString());
+                PersistSettings();
             }
         }
 
@@ -75,7 +83,7 @@ namespace Sway
                 }
 
                 swayLength = value;
-                SetConfigValue("SwayLength", value.ToString());
+                PersistSettings();
             }
         }
 
@@ -85,7 +93,7 @@ namespace Sway
             set
             {
                 runWhenWindowsLocked = value;
-                SetConfigValue("RunWhenWindowsLocked", value.ToString());
+                PersistSettings();
             }
         }
 
@@ -96,63 +104,53 @@ namespace Sway
             {
                 try
                 {
-                    if (TrySetAutoRun(value))
+                    if (_registryService.TrySetAutoRun(value))
                     {
                         autoStart = value;
-                        SetConfigValue("AutoStart", autoStart.ToString());
+                        PersistSettings();
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogWarning(ex, "Failed to set AutoStart to {Value}", value);
                 }
-            }
-        }
-
-        static bool TrySetAutoRun(bool enabled)
-        {
-            try
-            {
-                using (var key = Registry.CurrentUser.CreateSubKey(RunKeyPath))
-                {
-                    if (key == null)
-                    {
-                        return false;
-                    }
-
-                    if (enabled)
-                    {
-                        var exePath = Assembly.GetExecutingAssembly().Location;
-                        var command = $"\"{exePath}\" {App.AutoStart}";
-                        key.SetValue(RunValueName, command, RegistryValueKind.String);
-                    }
-                    else
-                    {
-                        key.DeleteValue(RunValueName, false);
-                    }
-
-                    return true;
-                }
-            }
-            catch
-            {
-                return false;
             }
         }
 
         bool autoStart;
         int runAfterSeconds;
         bool isRunning;
-        CancellationTokenSource tokenSource;
+        CancellationTokenSource? tokenSource;
         bool isLocked;
         bool isOperator;
         int swayLength;
         bool runWhenWindowsLocked;
+
+        void PersistSettings()
+        {
+            try
+            {
+                _settingsService.Save(new SwaySettings
+                {
+                    AutoStart = autoStart,
+                    RunWhenWindowsLocked = runWhenWindowsLocked,
+                    RunAfterSeconds = runAfterSeconds,
+                    SwayLength = swayLength
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to persist settings");
+            }
+        }
 
         void StartStop()
         {
             IsRunning = !IsRunning;
 
             isOperator = true;
+
+            _logger.LogInformation("Sway {Status}", IsRunning ? "started" : "stopped");
 
             RunOrStopRunning();
 
@@ -170,31 +168,47 @@ namespace Sway
                 tokenSource = new CancellationTokenSource();
                 var token = tokenSource.Token;
 
-                var task = Task.Run(() =>
+                var task = Task.Run(async () =>
                 {
                     while (!token.IsCancellationRequested)
                     {
-                        if (!isLocked)
+                        try
                         {
-                            var mousePosition = MouseMoveHelper.GetMousePosition();
-                            Thread.Sleep(runAfterSeconds * 1000);
-                            var nowPosition = MouseMoveHelper.GetMousePosition();
-
-                            if (mousePosition == nowPosition && !token.IsCancellationRequested)
+                            if (!isLocked)
                             {
-                                SwayIt();
+                                var mousePosition = _mouseService.GetMousePosition();
+                                await Task.Delay(runAfterSeconds * 1000, token);
+                                var nowPosition = _mouseService.GetMousePosition();
+
+                                if (mousePosition == nowPosition && !token.IsCancellationRequested)
+                                {
+                                    SwayIt(token);
+                                }
                             }
+                            else
+                            {
+                                await Task.Delay(1000, token);
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error in sway loop");
                         }
                     }
                 }, token);
             }
         }
 
-        void SwayIt()
+        void SwayIt(CancellationToken token)
         {
-            MouseMoveHelper.MoveMouse(SwayLength, SwayLength);
+            _mouseService.MoveMouse(SwayLength, SwayLength);
+            token.ThrowIfCancellationRequested();
             Thread.Sleep(100);
-            MouseMoveHelper.MoveMouse(-SwayLength, -SwayLength);
+            _mouseService.MoveMouse(-SwayLength, -SwayLength);
         }
 
         void SystemEvents_SessionSwitch(object sender, SessionSwitchEventArgs e)
@@ -204,10 +218,12 @@ namespace Sway
                 if (e.Reason == SessionSwitchReason.SessionLock)
                 {
                     isLocked = true;
+                    _logger.LogDebug("Session locked, sway paused");
                 }
                 else if (e.Reason == SessionSwitchReason.SessionUnlock)
                 {
                     isLocked = false;
+                    _logger.LogDebug("Session unlocked, sway resumed");
 
                     RunOrStopRunning();
                 }
@@ -220,30 +236,6 @@ namespace Sway
             tokenSource?.Cancel();
             tokenSource?.Dispose();
             tokenSource = null;
-        }
-
-        static bool SetConfigValue(string key, string value)
-        {
-            try
-            {
-                var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                if (config.AppSettings.Settings[key] != null)
-                {
-                    config.AppSettings.Settings[key].Value = value;
-                }
-                else
-                {
-                    config.AppSettings.Settings.Add(key, value);
-                }
-
-                config.Save(ConfigurationSaveMode.Modified);
-                ConfigurationManager.RefreshSection("appSettings");
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
         }
     }
 }

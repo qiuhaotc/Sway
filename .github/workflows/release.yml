@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET 10
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore
+      run: dotnet restore src/Sway.sln
+
+    - name: Test
+      run: dotnet test src/Sway.sln --configuration Debug --verbosity normal
+
+    - name: Publish
+      run: dotnet publish src/Sway/Sway.csproj --configuration Release --output publish
+
+    - name: Zip artifact
+      run: Compress-Archive -Path publish/* -DestinationPath Sway.zip
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: Sway.zip
+        generate_release_notes: true
